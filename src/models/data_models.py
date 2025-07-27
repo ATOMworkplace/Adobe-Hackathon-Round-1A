@@ -12,6 +12,8 @@ class FontMetadata:
 @dataclass
 class TextBlock:
     text: str; page_number: int; font_metadata: FontMetadata; position: PositionInfo
+    block_id: int
+    is_in_table: bool = False
 
 @dataclass
 class HeadingCandidate:

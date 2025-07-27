@@ -22,8 +22,7 @@ class JSONGenerator:
         return re.sub(r'\s+', ' ', text).strip()
 
     def _clean_output(self, data):
-        data["title"] = self._clean_text(data.get("title", "")) + " "
-        
+        data["title"] = self._clean_text(data.get("title", ""))
         cleaned_outline = []
         for entry in data.get("outline", []):
             cleaned_text = self._clean_text(entry.get("text", ""))

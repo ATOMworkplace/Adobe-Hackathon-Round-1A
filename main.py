@@ -12,6 +12,7 @@ from src.services.heading_classifier import HeadingClassifier
 from src.services.title_detector import TitleDetector
 from src.services.hierarchy_builder import HierarchyBuilder
 from src.services.json_generator import JSONGenerator
+from src.services.toc_extractor import TOCExtractor  # <-- NEW!
 from src.utils.logging_config import setup_logging
 
 def discover_pdf_files(input_directory):
@@ -35,13 +36,14 @@ def process_single_file(
     title_detector,
     hierarchy_builder,
     json_generator,
+    toc_extractor,
     input_path,
     output_path,
     logger
 ):
     try:
         logger.info(f"Processing: {input_path}")
-        
+
         text_blocks = pdf_processor.process_pdf(input_path)
 
         if not text_blocks:
@@ -52,7 +54,13 @@ def process_single_file(
             )
             return True
 
-        heading_candidates = heading_classifier.classify_blocks(text_blocks)
+        # Try TOC extraction first
+        toc_headings = toc_extractor.extract_toc_headings(text_blocks)
+        if toc_headings:
+            heading_candidates = toc_headings
+        else:
+            heading_candidates = heading_classifier.classify_blocks(text_blocks)
+
         document_title = title_detector.detect_title(heading_candidates, text_blocks)
         document_outline = hierarchy_builder.build_outline(heading_candidates, document_title)
 
@@ -78,10 +86,10 @@ def main():
     try:
         config = ConfigManager()
         proc_cfg = config.get_processing_config()
-        
+
         if os.path.exists("./input") and os.path.isdir("./input"):
              proc_cfg.input_directory = "./input"
-        
+
         if os.path.exists("./output") and os.path.isdir("./output"):
             proc_cfg.output_directory = "./output"
 
@@ -98,6 +106,7 @@ def main():
         title_det = TitleDetector(config)
         hierarchy = HierarchyBuilder(config)
         json_gen = JSONGenerator()
+        toc_extractor = TOCExtractor(config)  # <-- NEW!
 
         success_count = 0
         for pdf_path in pdf_files:
@@ -105,6 +114,7 @@ def main():
             if process_single_file(
                 pdf_proc, head_clf,
                 title_det, hierarchy, json_gen,
+                toc_extractor,  # <-- NEW!
                 pdf_path, output_path, logger
             ):
                 success_count += 1

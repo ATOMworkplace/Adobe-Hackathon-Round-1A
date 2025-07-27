@@ -11,13 +11,11 @@ class ClassificationConfig:
     min_heading_length: int = 3
     max_heading_words: int = 30
     title_max_words: int = 30
-    heading_confidence_threshold: float = 0.5
+    heading_confidence_threshold: float = 0.55
     
-    # Weights for the scoring model
-    w_font_size: float = 0.4
-    w_style: float = 0.2
-    w_pattern: float = 0.3
-    w_whitespace: float = 0.2
+    w_font_size: float = 0.40
+    w_style: float = 0.25
+    w_pattern: float = 0.35
 
 class ConfigManager:
     def __init__(self):

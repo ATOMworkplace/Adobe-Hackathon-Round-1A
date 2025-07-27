@@ -9,18 +9,29 @@ class HierarchyBuilder:
     def build_outline(self, headings: List[HeadingCandidate], document_title: str) -> DocumentOutline:
         headings.sort(key=lambda h: (h.page, h.text_block.position.y0))
         
-        outline_entries = []
-        last_h1 = False
+        title_norm = self._normalize(document_title)
+        
+        outline = []
+        last_h1, last_h2 = False, False
+
         for heading in headings:
+            if title_norm and self._normalize(heading.text) == title_norm:
+                continue
+            
             level = heading.level
             
             if level == "H1":
-                last_h1 = True
+                last_h1, last_h2 = True, False
             elif level == "H2":
-                if not last_h1: level = "H1"
+                if not last_h1: level = "H1"; last_h1 = True
+                last_h2 = True
             elif level == "H3":
-                if not last_h1: level = "H1"
-
-            outline_entries.append(OutlineEntry(level, heading.text, heading.page))
+                if not last_h1: level = "H1"; last_h1 = True
+                if not last_h2: level = "H2"; last_h2 = True
             
-        return DocumentOutline(title=document_title, outline=outline_entries)
+            outline.append(OutlineEntry(level, heading.text, heading.page))
+        
+        return DocumentOutline(title=document_title, outline=outline)
+
+    def _normalize(self, text: str) -> str:
+        return re.sub(r'[^a-z0-9]', '', text.lower()) if text else ""

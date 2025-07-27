@@ -21,6 +21,7 @@ class TextExtractor:
 
     def extract_clean_blocks(self, doc: fitz.Document) -> List[TextBlock]:
         raw_spans = []
+        block_counter = 0
         for page_num, page in enumerate(doc):
             blocks_data = page.get_text("dict", flags=~fitz.TEXT_PRESERVE_IMAGES)["blocks"]
             for b in blocks_data:
@@ -32,34 +33,31 @@ class TextExtractor:
                             bbox = s['bbox']
                             family, weight, style, is_bold = self._normalize_font(s['font'])
                             raw_spans.append(TextBlock(
+                                block_id=block_counter,
                                 text=text, page_number=page_num,
                                 font_metadata=FontMetadata(s['size'], family, weight, style, is_bold),
                                 position=PositionInfo(bbox[0], bbox[1], bbox[2], bbox[3])
                             ))
-        
+                            block_counter += 1
         filtered_spans = self._filter_spans(raw_spans, len(doc))
         clean_blocks = self._reconstruct_blocks_from_spans(filtered_spans)
         return clean_blocks
 
     def _filter_spans(self, spans: List[TextBlock], page_count: int) -> List[TextBlock]:
         toc_pages = self._find_toc_pages(spans)
-        
         hf_texts = defaultdict(list)
         if page_count > 2:
             for span in spans:
                 if span.page_number > 0 and span.page_number not in toc_pages:
                     if span.position.y0 < self.proc_cfg.header_footer_margin or span.position.y1 > (792 - self.proc_cfg.header_footer_margin):
                         hf_texts[span.text.lower()].append(span.page_number)
-        
         common_hf_texts = {text for text, pages in hf_texts.items() if len(set(pages)) > page_count / 3}
-
         final_spans = []
         for span in spans:
             if span.page_number in toc_pages: continue
             if span.text.lower() in common_hf_texts: continue
             if re.fullmatch(r'page \d+|\d+', span.text, re.I): continue
             final_spans.append(span)
-        
         return final_spans
 
     def _find_toc_pages(self, spans: List[TextBlock]) -> set:
@@ -68,7 +66,6 @@ class TextExtractor:
         for span in spans:
             if re.search(r'(\.|\s){4,}\s*\d+$', span.text):
                 page_toc_counts[span.page_number] += 1
-        
         for page, count in page_toc_counts.items():
             if count > 3:
                 toc_pages.add(page)
@@ -76,17 +73,23 @@ class TextExtractor:
 
     def _reconstruct_blocks_from_spans(self, spans: List[TextBlock]) -> List[TextBlock]:
         if not spans: return []
-        
         lines = defaultdict(list)
         for span in sorted(spans, key=lambda s: (s.page_number, s.position.y0, s.position.x0)):
             lines[(span.page_number, round(span.position.y0 / 5))].append(span)
-
         blocks = []
+        block_counter = 0
         for line_spans in sorted(lines.values(), key=lambda s: (s[0].page_number, s[0].position.y0)):
             text = " ".join(s.text for s in line_spans)
             pos = PositionInfo(
                 x0=min(s.position.x0 for s in line_spans), y0=min(s.position.y0 for s in line_spans),
                 x1=max(s.position.x1 for s in line_spans), y1=max(s.position.y1 for s in line_spans)
             )
-            blocks.append(TextBlock(text, line_spans[0].page_number, line_spans[0].font_metadata, pos))
+            blocks.append(TextBlock(
+                block_id=block_counter,
+                text=text,
+                page_number=line_spans[0].page_number,
+                font_metadata=line_spans[0].font_metadata,
+                position=pos
+            ))
+            block_counter += 1
         return blocks
