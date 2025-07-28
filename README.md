@@ -36,14 +36,6 @@ The system uses a modular pipeline architecture:
 
 ### Local Development
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-python main.py
-```
-
 ### Docker Deployment
 
 ```bash
