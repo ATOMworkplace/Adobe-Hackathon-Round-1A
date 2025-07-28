@@ -109,9 +109,6 @@ Intelligent level assignment process:
 ## Testing
 
 ```bash
-# Run basic functionality tests
-python test_basic.py
-
 # Test with sample PDFs (place PDFs in ./input directory)
 python main.py
 ```
@@ -155,8 +152,8 @@ The system handles various error conditions:
 - **PyMuPDF (fitz)**: PDF processing and text extraction
 - **psutil**: Memory and performance monitoring
 - **Python 3.9+**:  Core runtime environment
-- **Pillow==10.0.1: Used for opening, manipulating, and saving many different image file formats.
-- **networkx==3.1: For creating and analyzing graphs and networks.
+- **Pillow==10.0.1**: Used for opening, manipulating, and saving many different image file formats.
+- **networkx==3.1**: For creating and analyzing graphs and networks.
 
 ## License
 
